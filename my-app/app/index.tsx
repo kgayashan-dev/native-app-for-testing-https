@@ -1,39 +1,37 @@
-import {
-  Text,
-  View,
-  StyleSheet,
-  ActivityIndicator,
-  TouchableOpacity,
-} from "react-native";
-import { useEffect, useState } from "react";
+import { View, Text, Alert, ActivityIndicator, Button } from "react-native";
+import React, { useEffect, useState } from "react";
 import { router } from "expo-router";
-export default function Index() {
+
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+
+const New = () => {
   const [data, setData] = useState<any>(null);
+  const [dataPost, setPostData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [posting, setPosting] = useState<boolean>(false);
 
-  const redirectToLogin = () => {
-    router.push("/login");
-  };
-
+  // Fetch data with GET request
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Example API - replace with your actual API endpoint
-        const response = await fetch(
-          "https://jsonplaceholder.typicode.com/posts/7"
-        );
+        const response = await fetch(`${API_BASE_URL}/auth/TestGet/1`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          credentials: "include",
+        });
 
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          throw new Error(`HTTP error! Status: ${response.status}`);
         }
 
         const json = await response.json();
         setData(json);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "An unknown error occurred"
-        );
+      } catch (err: any) {
+        console.error(err);
+        Alert.alert("Error", err.message);
       } finally {
         setLoading(false);
       }
@@ -42,105 +40,66 @@ export default function Index() {
     fetchData();
   }, []);
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" />
-        <Text>Loading...</Text>
-      </View>
-    );
-  }
+  // Function to send a POST request
+  const handlePostRequest = async () => {
+    setPosting(true);
+    setPostData(null); // Reset previous post data before new request
 
-  if (error) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.error}>Error: {error}</Text>
-      </View>
-    );
-  }
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/TestPost`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          testId: "1",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const json = await response.json();
+      Alert.alert("Success", "Data submitted successfully!");
+      console.log("POST Response:", json);
+      setPostData(json);
+    } catch (err: any) {
+      console.error(err);
+      Alert.alert("Error", err.message);
+    } finally {
+      setPosting(false);
+    }
+  };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>API Data:</Text>
-      {data && (
-        <View style={styles.dataContainer}>
-          <Text style={styles.dataText}>ID: {data.id}</Text>
-          <Text style={styles.dataText}>Title: {data.title}</Text>
-          <Text style={styles.dataText}>Body: {data.body}</Text>
+    <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>
+      <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 10 }}>New</Text>
+
+      {loading ? (
+        <ActivityIndicator size="large" color="blue" />
+      ) : data ? (
+        <Text style={{ marginBottom: 10 }}>{JSON.stringify(data, null, 2)}</Text>
+      ) : (
+        <Text>No data available</Text>
+      )}
+
+      <Button
+        title={posting ? "Sending..." : "Send POST Request"}
+        onPress={handlePostRequest}
+        disabled={posting}
+      />
+
+      {dataPost && (
+        <View style={{ marginTop: 20, padding: 10, backgroundColor: "#f0f0f0", borderRadius: 8 }}>
+          <Text style={{ fontWeight: "bold" }}>Post Response:</Text>
+          <Text>{JSON.stringify(dataPost, null, 2)}</Text>
         </View>
       )}
-      <View>
-        <View style={styles.buttonsContainer}>
-          <TouchableOpacity
-            style={styles.getStartedButton}
-            onPress={redirectToLogin}
-          >
-            <Text style={styles.getStartedText}>Log In</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
     </View>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  container: {
-   justifyContent: 'center',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-
-  buttonsContainer: {
-    width: "100%",
-    paddingHorizontal: 20,
-    marginTop: 10,
-  },
-  getStartedButton: {
-    backgroundColor: "#4D90FE",
-    paddingVertical: 16,
-    borderRadius: 30,
-    alignItems: "center",
-    marginBottom: 16,
-    shadowColor: "#4D90FE",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 6,
-  },
-  getStartedText: {
-    color: "#FFFFFF",
-    // fontSize: isSmallDevice ? 16 : 18,
-    fontWeight: "bold",
-  },
-  signUpButton: {
-    backgroundColor: "transparent",
-    paddingVertical: 16,
-    borderRadius: 30,
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
-  },
-  signUpText: {
-    color: "#FFFFFF",
-    // fontSize: isSmallDevice ? 16 : 18,
-    fontWeight: "bold",
-  },
-  dataContainer: {
-    marginTop: 10,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-  },
-  dataText: {
-    fontSize: 16,
-    marginBottom: 5,
-  },
-  error: {
-    color: "red",
-    fontSize: 16,
-  },
-});
+export default New;
